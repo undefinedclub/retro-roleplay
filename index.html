@@ -114,7 +114,7 @@
       function bindAdditionalForms(){
         const infoForm=document.querySelector('#family-info-form');
         if(infoForm){
-          infoForm.addEventListener('submit',event=>{event.preventDefault();const values=Object.fromEntries(new FormData(infoForm).entries()),familyName=String(values.familyName||'').trim();delete values.familyName;state.family=familyName||'Retro Family';state.familyInfo={...state.familyInfo,...values};persist();logActivity('Familieninfos aktualisiert',state.family);render();notify('Familieninfos gespeichert.')});
+          infoForm.addEventListener('submit',event=>{event.preventDefault();const values=Object.fromEntries(new FormData(infoForm).entries()),familyName=String(values.familyName||'').trim();if(!familyName){notify('Bitte einen Familiennamen eintragen.');infoForm.querySelector('#family-name-info').focus();return}delete values.familyName;state.family=familyName;state.familyInfo={...state.familyInfo,...values};persist();logActivity('Familieninfos aktualisiert',state.family);render();notify('Familieninfos gespeichert.')});
           const imageInput=infoForm.querySelector('#family-image-upload');
           imageInput?.addEventListener('change',async event=>{const file=event.target.files?.[0];if(!file)return;if(!['image/jpeg','image/png','image/webp'].includes(file.type)){notify('Bitte ein JPG-, PNG- oder WebP-Bild auswählen.');return}if(file.size>12*1024*1024){notify('Das Bild darf höchstens 12 MB groß sein.');return}try{const bitmap=await createImageBitmap(file),scale=Math.min(1,1000/Math.max(bitmap.width,bitmap.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();const blob=await new Promise((resolve,reject)=>canvas.toBlob(result=>result?resolve(result):reject(new Error('Bild konnte nicht verarbeitet werden.')),'image/webp',0.76));if(blob.size>1500000)throw new Error('Das verkleinerte Bild ist noch zu groß. Bitte ein kleineres Bild verwenden.');const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Bild konnte nicht gelesen werden.'));reader.readAsDataURL(blob)});state.familyInfo.image=image;persist();render();notify('Familienbild gespeichert.') }catch(error){notify(`Bild konnte nicht gespeichert werden: ${error.message}`)}});
           infoForm.querySelector('#family-image-remove')?.addEventListener('click',()=>{state.familyInfo.image='';persist();render();notify('Familienbild entfernt.')});
@@ -136,6 +136,13 @@
           nameInput.type='hidden';nameInput.required=false;nameField.hidden=true;
           form.querySelector('.form-grid').insertAdjacentHTML('afterbegin',`<div class="field"><label for="field-firstName">Vorname</label><input id="field-firstName" name="firstName" value="${escapeHtml(item?.firstName||nameParts[0]||'')}" required></div><div class="field"><label for="field-lastName">Nachname</label><input id="field-lastName" name="lastName" value="${escapeHtml(item?.lastName||nameParts.slice(1).join(' '))}" required></div>`);
         }
+        if(kind==='member'||kind==='contact'){
+          const familyNames=[...new Set([state.family,item?.family,...state.families.map(family=>family.name),...state.persons.flatMap(person=>(person.familyHistory||[]).map(entry=>entry.familyName))].map(name=>String(name||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
+          form.querySelector('[name="family"]')?.closest('.field')?.remove();
+          const selectedFamily=item?.family||state.family||'';
+          form.querySelector('.form-grid').insertAdjacentHTML('beforeend',`<div class="field"><label for="field-family">Familie</label><select id="field-family" name="family" required><option value="">Familie auswählen</option>${familyNames.map(name=>`<option value="${escapeHtml(name)}" ${name===selectedFamily?'selected':''}>${escapeHtml(name)}</option>`).join('')}</select></div>`);
+          form.insertAdjacentHTML('beforeend',`<input type="hidden" name="familyId" value="${escapeHtml(item?.familyId||'')}">`);
+        }
         form.querySelector('.form-grid').insertAdjacentHTML('beforeend',`<div class="field"><label for="field-discordId">Discord-ID</label><input id="field-discordId" name="discordId" value="${escapeHtml(discordId)}" autocomplete="off"></div>`);
         if(kind==='person'){
           form.addEventListener('submit',event=>{const values=Object.fromEntries(new FormData(form).entries()),value=String(values.discordId||'').trim(),existing=value&&state.persons.find(person=>String(person.discordId||'').trim()===value),matchingEntries=[...state.members,...state.contacts].filter(entry=>value&&String(entry.discordId||'').trim()===value);if(!existing&&!matchingEntries.length)return;event.preventDefault();event.stopImmediatePropagation();const person=existing||{id:makeId(),...values,discordId:value};if(existing)Object.assign(person,values);else state.persons.unshift(person);for(const entry of [...state.members,...state.contacts])if(entry.personId===person.id||matchingEntries.includes(entry)){entry.personId=person.id;entry.discordId=value}persist();overlayRoot.innerHTML='';render();notify('Personenakte mit dieser Discord-ID verknüpft.')},true);
@@ -144,6 +151,11 @@
         form.insertAdjacentHTML('beforeend',`<input type="hidden" name="personId" value="${escapeHtml(linkedPerson?.id||'')}">`);
         form.addEventListener('submit',event=>{
           const values=Object.fromEntries(new FormData(form).entries()),value=String(values.discordId||'').trim(),link=form.querySelector('[name="personId"]');
+          if(kind==='member'||kind==='contact'){
+            const familyName=String(values.family||'').trim(),normalizedFamily=familyName.toLocaleLowerCase('de'),family=state.families.find(entry=>String(entry.name||'').trim().toLocaleLowerCase('de')===normalizedFamily),familyHistory=state.persons.flatMap(person=>person.familyHistory||[]).find(entry=>String(entry.familyName||'').trim().toLocaleLowerCase('de')===normalizedFamily);
+            values.family=familyName;values.familyId=family?.id||familyHistory?.familyId||(familyName===state.family?'family-retro-roleplay':'');
+            form.querySelector('[name="familyId"]').value=values.familyId;
+          }
           if(kind==='member')form.querySelector('[name="name"]').value=`${values.firstName||''} ${values.lastName||''}`.trim();
           const name=`${values.firstName||''} ${values.lastName||''}`.trim();
           const normalizedName=name.toLocaleLowerCase('de'),byDiscord=value&&state.persons.find(person=>String(person.discordId||'').trim()===value),byLink=link.value&&state.persons.find(person=>person.id===link.value),byName=value?state.persons.filter(person=>displayPersonName(person).trim().toLocaleLowerCase('de')===normalizedName):[],person=byDiscord||byLink||(byName.length===1?byName[0]:null);
@@ -153,6 +165,7 @@
           linked.discordId=value;
           if(!linked.firstName||!linked.lastName){const [firstName,...lastName]=name.split(/\s+/);linked.firstName||=firstName||'';linked.lastName||=lastName.join(' ')}
           if(!linked.phone&&values.phone)linked.phone=values.phone;
+          if(values.family)linked.family=values.family;
           link.value=linked.id;
           for(const entry of [...state.members,...state.contacts])if(entry.personId===linked.id||(value&&entry.discordId===value)){entry.personId=linked.id;entry.discordId=value}
         },true);
