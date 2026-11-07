@@ -131,6 +131,7 @@
         const linkedPerson=state.persons.find(person=>person.id===item?.personId||(item?.discordId&&person.discordId===item.discordId));
         const discordId=linkedPerson?.discordId||item?.discordId||'';
         if(kind==='member'){
+          form.querySelector('[name="joined"]')?.closest('.field')?.remove();
           const nameInput=form.querySelector('[name="name"]'),nameField=nameInput.closest('.field'),nameParts=String(item?.name||'').trim().split(/\s+/);
           nameInput.type='hidden';nameInput.required=false;nameField.hidden=true;
           form.querySelector('.form-grid').insertAdjacentHTML('afterbegin',`<div class="field"><label for="field-firstName">Vorname</label><input id="field-firstName" name="firstName" value="${escapeHtml(item?.firstName||nameParts[0]||'')}" required></div><div class="field"><label for="field-lastName">Nachname</label><input id="field-lastName" name="lastName" value="${escapeHtml(item?.lastName||nameParts.slice(1).join(' '))}" required></div>`);
