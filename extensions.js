@@ -24,10 +24,11 @@ window.createRetroExtensions = function (api) {
   function personName(person) {
     return person.fullName || `${person.firstName || ''} ${person.lastName || ''}`.trim() || person.nickname || 'Unbekannte Person';
   }
-  function syncPersonLinks(person, previousDiscordId='') {
-    const data=state(),discordId=String(person.discordId||'').trim(),oldDiscordId=String(previousDiscordId||'').trim();
-    let member=data.members.find(item=>item.personId===person.id||(discordId&&item.discordId===discordId)||(oldDiscordId&&item.discordId===oldDiscordId));
-    let contact=data.contacts.find(item=>item.personId===person.id||(discordId&&item.discordId===discordId)||(oldDiscordId&&item.discordId===oldDiscordId));
+  function syncPersonLinks(person, previousDiscordId='', previousPhone='') {
+    const data=state(),discordId=String(person.discordId||'').trim(),oldDiscordId=String(previousDiscordId||'').trim(),phoneKey=value=>String(value||'').replace(/\D/g,'');
+    const matchIdentity=entry=>(discordId&&String(entry.discordId||'').trim()===discordId)||(oldDiscordId&&String(entry.discordId||'').trim()===oldDiscordId)||(phoneKey(person.phone)&&phoneKey(entry.phone)===phoneKey(person.phone))||(phoneKey(previousPhone)&&phoneKey(entry.phone)===phoneKey(previousPhone));
+    let member=data.members.find(item=>item.personId===person.id)||data.members.find(matchIdentity);
+    let contact=data.contacts.find(item=>item.personId===person.id)||data.contacts.find(matchIdentity);
     const familyName=String(person.family||member?.family||contact?.family||'Zivilist').trim()||'Zivilist',family=data.families.find(item=>String(item.name||'').trim().toLocaleLowerCase('de')===familyName.toLocaleLowerCase('de')),familyId=familyName==='Zivilist'?'':family?.id||person.familyId||member?.familyId||contact?.familyId||'',name=`${person.firstName||''} ${person.lastName||''}`.trim()||personName(person),phone=person.phone??member?.phone??contact?.phone??'';
     person.family=familyName;person.familyId=familyId;person.discordId=discordId;
     if(!member){member={id:makeId(),rank:'Mitglied',joined:today(),status:'Aktiv'};data.members.unshift(member)}
@@ -116,7 +117,7 @@ window.createRetroExtensions = function (api) {
     api.overlay().querySelectorAll('[data-extension-tab]').forEach(button => button.addEventListener('click', () => openPersonDetail(personId,button.dataset.extensionTab)));
     api.overlay().querySelectorAll('[data-extension-action]').forEach(button => button.addEventListener('click', () => button.dataset.extensionAction === 'person-open' ? openPersonDetail(button.dataset.id) : openPersonSubform(personId,button.dataset.kind)));
     const form = api.overlay().querySelector('#person-data-form');
-    if (form) form.addEventListener('submit', event => { event.preventDefault(); const previousDiscordId=person.discordId; Object.assign(person,Object.fromEntries(new FormData(form).entries())); syncPersonLinks(person,previousDiscordId); api.persist(); openPersonDetail(personId,'personal'); api.notify('Personendaten gespeichert und mit Mitgliederliste sowie Telefonbuch synchronisiert.'); });
+    if (form) form.addEventListener('submit', event => { event.preventDefault(); const previousDiscordId=person.discordId,previousPhone=person.phone; Object.assign(person,Object.fromEntries(new FormData(form).entries())); syncPersonLinks(person,previousDiscordId,previousPhone); api.persist(); openPersonDetail(personId,'personal'); api.notify('Personendaten gespeichert und mit Mitgliederliste sowie Telefonbuch synchronisiert.'); });
     const notesForm = api.overlay().querySelector('#person-notes-form');
     if (notesForm) notesForm.addEventListener('submit', event => { event.preventDefault(); const values=Object.fromEntries(new FormData(notesForm).entries()); person.notes=values.notes; person.knownNicknames=values.knownNicknames.split(',').map(value=>value.trim()).filter(Boolean); api.persist(); openPersonDetail(personId,'notes'); api.notify('Notizen gespeichert.'); });
   }

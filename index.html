@@ -152,7 +152,8 @@
         openFormBeforeDiscordIdentity(kind,item);
         if(!['member','contact','person'].includes(kind))return;
         const form=overlayRoot.querySelector('#entry-form');
-        const linkedPerson=state.persons.find(person=>person.id===item?.personId||(item?.discordId&&person.discordId===item.discordId));
+        const phoneKey=value=>String(value||'').replace(/\D/g,'');
+        const linkedPerson=state.persons.find(person=>person.id===item?.personId||(item?.discordId&&person.discordId===item.discordId)||(phoneKey(item?.phone)&&phoneKey(person.phone)===phoneKey(item.phone)));
         const discordId=linkedPerson?.discordId||item?.discordId||'';
         if(kind==='member'){
           form.querySelector('[name="joined"]')?.closest('.field')?.remove();
@@ -181,17 +182,10 @@
             form.querySelector('[name="familyId"]').value=values.familyId;
           }
           if(kind==='member')form.querySelector('[name="name"]').value=`${values.firstName||''} ${values.lastName||''}`.trim();
-          const name=`${values.firstName||''} ${values.lastName||''}`.trim();
-          const normalizedName=name.toLocaleLowerCase('de'),byDiscord=value&&state.persons.find(person=>String(person.discordId||'').trim()===value),byLink=link.value&&state.persons.find(person=>person.id===link.value),byName=value?state.persons.filter(person=>displayPersonName(person).trim().toLocaleLowerCase('de')===normalizedName):[],person=byDiscord||byLink||(byName.length===1?byName[0]:null);
-          if(!value&&!person){link.value='';return}
-          let linked=person;
-          if(!linked){const [firstName,...lastName]=name.split(/\s+/);linked={id:makeId(),firstName:firstName||'',lastName:lastName.join(' '),discordId:value,phone:values.phone||'',family:values.family||'',relation:kind==='member'?'Mitglied':'Telefonbuch-Kontakt'};state.persons.unshift(linked)}
-          linked.discordId=value;
-          if(!linked.firstName||!linked.lastName){const [firstName,...lastName]=name.split(/\s+/);linked.firstName||=firstName||'';linked.lastName||=lastName.join(' ')}
-          if(!linked.phone&&values.phone)linked.phone=values.phone;
-          if(values.family)linked.family=values.family;
-          link.value=linked.id;
-          for(const entry of [...state.members,...state.contacts])if(entry.personId===linked.id||(value&&entry.discordId===value)){entry.personId=linked.id;entry.discordId=value}
+          const phone=String(values.phone||'').trim(),normalizedPhone=phoneKey(phone),matchingEntries=[...state.members,...state.contacts].filter(entry=>(value&&String(entry.discordId||'').trim()===value)||(normalizedPhone&&phoneKey(entry.phone)===normalizedPhone)),byDiscord=value&&state.persons.find(person=>String(person.discordId||'').trim()===value),byPhone=normalizedPhone&&state.persons.find(person=>phoneKey(person.phone)===normalizedPhone),byEntry=state.persons.find(person=>matchingEntries.some(entry=>entry.personId===person.id)),byLink=link.value&&state.persons.find(person=>person.id===link.value),person=byDiscord||byPhone||byEntry||byLink||{id:makeId()},isNew=!state.persons.some(entry=>entry.id===person.id),previousDiscordId=person.discordId,previousPhone=person.phone,previousName=displayPersonName(person),name=`${values.firstName||''} ${values.lastName||''}`.trim();
+          person.firstName=String(values.firstName||'').trim()||person.firstName||'';person.lastName=String(values.lastName||'').trim()||person.lastName||'';if(!person.fullName||person.fullName===previousName)person.fullName=name;person.phone=phone||person.phone||'';person.discordId=value||person.discordId||'';person.family=values.family||person.family||'Zivilist';person.familyId=values.familyId||person.familyId||'';person.relation||=kind==='member'?'Mitglied':'Telefonbuch-Kontakt';if(kind==='member'&&values.contact)person.discordName=values.contact;if(isNew)state.persons.unshift(person);
+          for(const entry of matchingEntries){entry.personId=person.id;entry.discordId=person.discordId}
+          link.value=person.id;extensions.syncPersonLinks(person,previousDiscordId,previousPhone);
         },true);
       };
       function handleAction(action,element){if(extensions.handleAction(action,element))return;if(action==='add-member'||action==='edit-member')openForm('member',action==='edit-member'?state.members.find(item=>item.id===element.dataset.id):null);else if(action==='add-person')openForm('person');else if(action.startsWith('add-'))openForm(action.slice(4));else if(action==='delete')deleteItem(element.dataset.kind,element.dataset.id);else if(action==='stock')adjustStock(element.dataset.id,Number(element.dataset.delta));else if(action==='credit-paid')setRecordStatus('credits',element.dataset.id,'Bezahlt');else if(action==='equipment-returned')setEquipmentReturned(element.dataset.id);else if(action==='export')exportBackup();else if(action==='import')document.querySelector('#import-file').click();else if(action==='reset')resetData();else if(action==='lock'){sessionStorage.removeItem('retro-roleplay-auth');if(supabaseClient)supabaseClient.auth.signOut().finally(()=>{currentUser=null;setSyncStatus('ABGEMELDET','local');showLogin()});else showLogin()}}
