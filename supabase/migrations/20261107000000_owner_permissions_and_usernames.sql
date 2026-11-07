@@ -50,6 +50,9 @@ create policy app_members_read_self on public.app_members
   using (user_id = auth.uid() or public.is_app_owner());
 
 drop policy if exists app_members_admin_write on public.app_members;
+drop policy if exists app_members_owner_insert on public.app_members;
+drop policy if exists app_members_owner_update on public.app_members;
+drop policy if exists app_members_owner_delete on public.app_members;
 create policy app_members_owner_insert on public.app_members
   for insert to authenticated
   with check (
