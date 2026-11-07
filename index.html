@@ -139,8 +139,8 @@
         if(kind==='member'||kind==='contact'){
           const familyNames=[...new Set([state.family,item?.family,...state.families.map(family=>family.name),...state.persons.flatMap(person=>(person.familyHistory||[]).map(entry=>entry.familyName))].map(name=>String(name||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
           form.querySelector('[name="family"]')?.closest('.field')?.remove();
-          const selectedFamily=item?.family||state.family||'';
-          form.querySelector('.form-grid').insertAdjacentHTML('beforeend',`<div class="field"><label for="field-family">Familie</label><select id="field-family" name="family" required><option value="">Familie auswählen</option>${familyNames.map(name=>`<option value="${escapeHtml(name)}" ${name===selectedFamily?'selected':''}>${escapeHtml(name)}</option>`).join('')}</select></div>`);
+          const selectedFamily=item?(item.family&&item.family!=='Zivilist'?item.family:'__civilian__'):(state.family||'__civilian__');
+          form.querySelector('.form-grid').insertAdjacentHTML('beforeend',`<div class="field"><label for="field-family">Familie</label><select id="field-family" name="family"><option value="__civilian__" ${selectedFamily==='__civilian__'?'selected':''}>Zivilist</option>${familyNames.map(name=>`<option value="${escapeHtml(name)}" ${name===selectedFamily?'selected':''}>${escapeHtml(name)}</option>`).join('')}</select></div>`);
           form.insertAdjacentHTML('beforeend',`<input type="hidden" name="familyId" value="${escapeHtml(item?.familyId||'')}">`);
         }
         form.querySelector('.form-grid').insertAdjacentHTML('beforeend',`<div class="field"><label for="field-discordId">Discord-ID</label><input id="field-discordId" name="discordId" value="${escapeHtml(discordId)}" autocomplete="off"></div>`);
@@ -152,8 +152,8 @@
         form.addEventListener('submit',event=>{
           const values=Object.fromEntries(new FormData(form).entries()),value=String(values.discordId||'').trim(),link=form.querySelector('[name="personId"]');
           if(kind==='member'||kind==='contact'){
-            const familyName=String(values.family||'').trim(),normalizedFamily=familyName.toLocaleLowerCase('de'),family=state.families.find(entry=>String(entry.name||'').trim().toLocaleLowerCase('de')===normalizedFamily),familyHistory=state.persons.flatMap(person=>person.familyHistory||[]).find(entry=>String(entry.familyName||'').trim().toLocaleLowerCase('de')===normalizedFamily);
-            values.family=familyName;values.familyId=family?.id||familyHistory?.familyId||(familyName===state.family?'family-retro-roleplay':'');
+            const familySelection=String(values.family||''),isCivilian=!familySelection||familySelection==='__civilian__',familyName=isCivilian?'Zivilist':familySelection.trim(),normalizedFamily=familyName.toLocaleLowerCase('de'),family=state.families.find(entry=>String(entry.name||'').trim().toLocaleLowerCase('de')===normalizedFamily),familyHistory=state.persons.flatMap(person=>person.familyHistory||[]).find(entry=>String(entry.familyName||'').trim().toLocaleLowerCase('de')===normalizedFamily);
+            values.family=familyName;values.familyId=isCivilian?'':family?.id||familyHistory?.familyId||(familyName===state.family?'family-retro-roleplay':'');
             form.querySelector('[name="familyId"]').value=values.familyId;
           }
           if(kind==='member')form.querySelector('[name="name"]').value=`${values.firstName||''} ${values.lastName||''}`.trim();
