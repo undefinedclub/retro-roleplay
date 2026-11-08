@@ -54,6 +54,24 @@
     .route-role-gallery{grid-template-columns:1fr}.route-role-gallery figure{max-width:900px}.route-role-gallery .route-image-preview{display:block;width:100%;padding:0;overflow:hidden;border:1px solid #49384b;border-radius:6px;background:#0b0b0d;cursor:zoom-in}.route-role-gallery .route-image-preview img{display:block;width:100%;max-height:380px;aspect-ratio:16/9;object-fit:contain}.route-image-viewer{position:fixed;inset:0;z-index:110;display:grid;place-items:center;padding:56px 24px 24px;background:#050507ed;animation:fade-in .18s ease both}.route-image-viewer figure{width:min(1200px,100%);max-height:100%;margin:0;text-align:center}.route-image-viewer img{display:block;width:100%;max-height:calc(100vh - 120px);object-fit:contain}.route-image-viewer figcaption{margin-top:9px;color:#eee;font-size:12px}.route-image-viewer-close{position:absolute;top:16px;right:16px;width:42px;height:42px;font-size:22px}
   </style>
   <style>
+    @keyframes modal-pop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes status-pulse{50%{box-shadow:0 0 0 5px #75d5ad12,0 0 14px #75d5ad}}
+    .modal{animation:modal-pop .34s cubic-bezier(.2,.8,.25,1) both}
+    .brand-mark{transition:transform .35s cubic-bezier(.2,.8,.25,1),box-shadow .35s}
+    .brand:hover .brand-mark{transform:rotate(-9deg) scale(1.08);box-shadow:0 0 22px #f05b9b45}
+    .online-dot{animation:status-pulse 2.8s ease-in-out infinite}
+    .media-banner img{transition:transform .65s cubic-bezier(.2,.7,.25,1),filter .65s}
+    .media-banner:hover img{transform:scale(1.045);filter:saturate(1.15)}
+    .primary-button{position:relative;overflow:hidden}
+    .primary-button:after{content:"";position:absolute;inset:-40% auto -40% -45%;width:30%;background:linear-gradient(90deg,transparent,#ffffff38,transparent);transform:translateX(-160%) skewX(-20deg);transition:transform .6s cubic-bezier(.2,.7,.25,1);pointer-events:none}
+    .primary-button:hover:after{transform:translateX(550%) skewX(-20deg)}
+    .data-table tbody tr{animation:content-rise .35s both}
+    .data-table tbody tr:nth-child(2){animation-delay:.04s}
+    .data-table tbody tr:nth-child(3){animation-delay:.08s}
+    .data-table tbody tr:nth-child(4){animation-delay:.12s}
+    .data-table tbody tr:nth-child(5){animation-delay:.16s}
+    .data-table tbody tr:nth-child(6){animation-delay:.2s}
+    .nav-item:focus-visible,.primary-button:focus-visible,.subtle-button:focus-visible,.icon-button:focus-visible{outline:2px solid var(--pink-soft);outline-offset:3px}
     @keyframes content-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
     #content>*{animation:content-rise .48s cubic-bezier(.2,.7,.25,1) both}
     #content>:nth-child(2){animation-delay:.05s}
