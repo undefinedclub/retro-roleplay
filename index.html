@@ -53,6 +53,25 @@
   <style>
     .route-role-gallery{grid-template-columns:1fr}.route-role-gallery figure{max-width:900px}.route-role-gallery .route-image-preview{display:block;width:100%;padding:0;overflow:hidden;border:1px solid #49384b;border-radius:6px;background:#0b0b0d;cursor:zoom-in}.route-role-gallery .route-image-preview img{display:block;width:100%;max-height:380px;aspect-ratio:16/9;object-fit:contain}.route-image-viewer{position:fixed;inset:0;z-index:110;display:grid;place-items:center;padding:56px 24px 24px;background:#050507ed;animation:fade-in .18s ease both}.route-image-viewer figure{width:min(1200px,100%);max-height:100%;margin:0;text-align:center}.route-image-viewer img{display:block;width:100%;max-height:calc(100vh - 120px);object-fit:contain}.route-image-viewer figcaption{margin-top:9px;color:#eee;font-size:12px}.route-image-viewer-close{position:absolute;top:16px;right:16px;width:42px;height:42px;font-size:22px}
   </style>
+  <style>
+    @keyframes content-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    #content>*{animation:content-rise .48s cubic-bezier(.2,.7,.25,1) both}
+    #content>:nth-child(2){animation-delay:.05s}
+    #content>:nth-child(3){animation-delay:.1s}
+    #content>:nth-child(4){animation-delay:.15s}
+    #content>:nth-child(5){animation-delay:.2s}
+    #content>:nth-child(6){animation-delay:.25s}
+    .metric,.panel,.route-panel,.dossier,.history-list>article{transition:transform .24s cubic-bezier(.2,.7,.25,1),border-color .24s,box-shadow .24s}
+    .metric:hover,.route-panel:hover,.dossier:hover,.history-list>article:hover{transform:translateY(-3px);border-color:#594252;box-shadow:0 12px 30px #0003}
+    .panel:hover{border-color:#433447;box-shadow:0 10px 28px #0002}
+    .nav-icon{transition:transform .24s cubic-bezier(.2,.7,.25,1),color .24s}
+    .nav-item:hover .nav-icon{transform:scale(1.16) rotate(-7deg);color:var(--pink-soft)}
+    .primary-button,.subtle-button,.tiny-button,.icon-button,.link-button{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,color .18s ease}
+    .primary-button:active,.subtle-button:active,.tiny-button:active,.icon-button:active{transform:scale(.96)}
+    .data-table tbody tr{transition:background-color .2s ease}
+    .data-table tbody tr:hover{background:#ffffff08}
+    @media(prefers-reduced-motion:reduce){#content>*{animation:none!important}}
+  </style>
 </head>
 <body>
   <div class="shell"><aside class="sidebar" id="sidebar">
