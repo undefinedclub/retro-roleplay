@@ -72,6 +72,21 @@
     .data-table tbody tr:nth-child(5){animation-delay:.16s}
     .data-table tbody tr:nth-child(6){animation-delay:.2s}
     .nav-item:focus-visible,.primary-button:focus-visible,.subtle-button:focus-visible,.icon-button:focus-visible{outline:2px solid var(--pink-soft);outline-offset:3px}
+    @keyframes ambient-shift{to{background-position:100% 45%,0% 55%,center}}
+    @keyframes chrome-shift{to{background-position:200% 50%}}
+    @keyframes hero-aura{50%{box-shadow:0 16px 70px #ec489925,0 0 32px #a78bfa10,inset 0 1px #ffffff12}}
+    @keyframes activity-glow{50%{box-shadow:0 0 18px #ec489928}}
+    body{background-image:radial-gradient(ellipse at 12% 12%,#ec48991d,transparent 36%),radial-gradient(ellipse at 90% 82%,#8b5cf61c,transparent 40%),radial-gradient(ellipse at 50% 50%,#ff8c0008,transparent 68%);background-size:150% 150%,160% 160%,100% 100%;background-attachment:fixed;animation:ambient-shift 32s ease-in-out infinite alternate}
+    .topbar{background:linear-gradient(105deg,#101012f5,#21131eef,#15101cf5,#101012f5);background-size:200% 100%;animation:chrome-shift 24s linear infinite alternate}
+    .nav-item.active{background-size:220% 100%;animation:chrome-shift 12s ease-in-out infinite alternate}
+    .page-heading h1{background:linear-gradient(100deg,#fff 5%,#ffd6a2 42%,#ff9fc4 72%,#c4b5fd);background-clip:text;-webkit-background-clip:text;color:transparent}
+    .hero{animation:hero-aura 8s ease-in-out infinite}
+    .metric,.panel,.route-panel,.dossier{background-image:linear-gradient(115deg,#ffffff06,transparent 42%);background-repeat:no-repeat;background-size:100% 100%}
+    .activity-mark{transition:transform .25s cubic-bezier(.2,.8,.25,1),box-shadow .25s}
+    .activity-row:hover .activity-mark{transform:rotate(-8deg) scale(1.09);box-shadow:0 0 18px #ec489938}
+    .profile .avatar{animation:activity-glow 5s ease-in-out infinite}
+    .hero-meta b{text-shadow:0 0 14px #ff8c0066}
+    @media(prefers-reduced-motion:reduce){body,.topbar,.nav-item.active,.hero,.profile .avatar{animation:none!important}}
     @keyframes content-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
     #content>*{animation:content-rise .48s cubic-bezier(.2,.7,.25,1) both}
     #content>:nth-child(2){animation-delay:.05s}
