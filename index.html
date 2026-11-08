@@ -142,6 +142,7 @@
       const fmtMoney=value=>new Intl.NumberFormat('de-DE',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
       const fmtDate=value=>{if(!value)return '—';const dateValue=String(value),date=new Date(/^\d{4}-\d{2}-\d{2}$/.test(dateValue)?`${dateValue}T12:00:00`:dateValue);return Number.isNaN(date.getTime())?'—':new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'short',year:'numeric'}).format(date)};
       const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+      function displayPersonName(person){return person.fullName||`${person.firstName||''} ${person.lastName||''}`.trim()||person.nickname||'Unbekannte Person'}
       const initials=name=>String(name||'?').split(/\s+/).slice(0,2).map(part=>part[0]||'').join('').toUpperCase();
       const persist=()=>{if(storageRecoveryError){notify(storageRecoveryError);return false}try{state=completeState(state);localStorage.setItem(STORAGE_KEY,JSON.stringify(state));localStorage.removeItem(CLOUD_REVISION_KEY);updateCounts();queueRemoteSave();return true}catch(error){notify(`Speichern fehlgeschlagen: ${error.message}`);return false}};
       function updateCounts(){document.querySelector('#task-count').textContent=state.tasks.filter(item=>item.status!=='Erledigt').length}
