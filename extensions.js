@@ -32,6 +32,24 @@ window.createRetroExtensions = function (api) {
     return person.maritalStatus&&person.maritalStatus!=='Ledig'?person.maritalStatus:'In einer Beziehung';
   }
   function ageFromBirthDate(value) { if (!value) return ''; const birth=new Date(`${value}T12:00:00`); if (Number.isNaN(birth.getTime())) return ''; const now=new Date(); return now.getFullYear()-birth.getFullYear()-((now.getMonth()<birth.getMonth()||(now.getMonth()===birth.getMonth()&&now.getDate()<birth.getDate()))?1:0); }
+  function zodiacFromBirthDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return null;
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+    const signs = [
+      [1, 20, 'Wassermann', '♒'], [2, 19, 'Fische', '♓'], [3, 21, 'Widder', '♈'],
+      [4, 20, 'Stier', '♉'], [5, 21, 'Zwillinge', '♊'], [6, 21, 'Krebs', '♋'],
+      [7, 23, 'Löwe', '♌'], [8, 23, 'Jungfrau', '♍'], [9, 23, 'Waage', '♎'],
+      [10, 23, 'Skorpion', '♏'], [11, 22, 'Schütze', '♐'], [12, 22, 'Steinbock', '♑']
+    ];
+    let sign = signs[signs.length - 1];
+    for (const candidate of signs) {
+      if (month > candidate[0] || (month === candidate[0] && day >= candidate[1])) sign = candidate;
+      else break;
+    }
+    return { name: sign[2], symbol: sign[3] };
+  }
   function initials(name) { return String(name || '?').split(/\s+/).slice(0,2).map(part => part[0] || '').join('').toUpperCase(); }
   function relationshipsFor(personId) {
     return state().personRelationships.filter(item => item.personId === personId || item.relatedPersonId === personId);
@@ -72,9 +90,13 @@ window.createRetroExtensions = function (api) {
     const activeFamilyCount = data.persons.reduce((sum, person) => sum + currentFamilies(person).length, 0);
     const activeJobCount = data.persons.reduce((sum, person) => sum + currentJobs(person).length, 0);
     const cards = people.map(person => {
-      const current = currentFamilies(person).map(item => item.familyName);
-      const former = pastFamilies(person).map(item => item.familyName);
-      return `<article class="panel dossier"><div class="dossier-top"><span class="avatar">${escape(initials(personName(person)))}</span><span class="badge gray">${escape(person.status || 'Unbekannt')}</span></div><h3>${escape(personName(person))}</h3><div class="dossier-family">Aktuell: ${escape(current.join(', ') || '—')} · Früher: ${escape(former.join(', ') || '—')}</div><p>Discord-ID: ${escape(person.discordId || '—')} · Wohn-PLZ: ${escape(person.homePostalCode || '—')} · ${escape(currentJobs(person)[0]?.job || 'Kein aktueller Job')} · ${escape(person.phone || 'Keine Nummer')}</p><button class="tiny-button" data-extension-action="person-open" data-id="${escape(person.id)}">Akte öffnen</button></article>`;
+      const family = currentFamilies(person).map(item => item.familyName).filter(Boolean).join(', ') || person.family || 'Keine aktuelle Familie';
+      const job = currentJobs(person)[0];
+      const occupation = job?.position || job?.job || person.occupation || 'Kein aktueller Beruf';
+      const zodiac = zodiacFromBirthDate(person.birthDate);
+      const age = ageFromBirthDate(person.birthDate);
+      const birthday = person.birthDate ? `${formatDate(person.birthDate)}${age ? ` · ${age} Jahre` : ''}` : 'Nicht erfasst';
+      return `<article class="panel dossier"><div class="dossier-top"><span class="avatar">${escape(initials(personName(person)))}</span><span class="badge gray">${escape(person.status || 'Unbekannt')}</span></div><h3>${escape(personName(person))}</h3><div class="dossier-zodiac">${zodiac ? `<span aria-hidden="true">${zodiac.symbol}</span> ${escape(zodiac.name)}` : '<span aria-hidden="true">✧</span> Sternzeichen nicht erfasst'}</div><div class="dossier-facts"><div><small>Geburtstag</small><strong>${escape(birthday)}</strong></div><div><small>Aktuelle Familie</small><strong>${escape(family)}</strong></div><div><small>Aktueller Beruf</small><strong>${escape(occupation)}</strong>${job?.employer ? `<small>${escape(job.employer)}</small>` : ''}</div><div><small>Telefon</small><strong>${escape(person.phone || 'Keine Nummer')}</strong></div></div><button class="tiny-button" data-extension-action="person-open" data-id="${escape(person.id)}">Akte öffnen</button></article>`;
     }).join('');
     return `${api.heading('VICE CITY DOSSIERS', 'Personenakten', 'Durchsuche verknüpfte Familien, Jobs und Beziehungen.', '<button class="primary-button" data-action="add-person">＋ Akte anlegen</button>')}<div class="summary-strip"><div class="summary-chip"><small>Personenakten</small><strong>${data.persons.length}</strong></div><div class="summary-chip"><small>Aktuelle Familienbindungen</small><strong>${activeFamilyCount}</strong></div><div class="summary-chip"><small>Aktuelle Jobs</small><strong>${activeJobCount}</strong></div></div>${api.searchToolbar('Name, Spitzname, Telefon, Familie, Job oder Beziehung suchen')}<div class="filter-row"><select data-person-filter="family"><option value="">Alle Familien</option>${families.map(name => `<option value="${escape(name)}" ${personFilters.family === name ? 'selected' : ''}>${escape(name)}</option>`).join('')}</select><select data-person-filter="familyStatus"><option value="">Aktuell oder ehemalig</option><option ${personFilters.familyStatus === 'Aktuell' ? 'selected' : ''}>Aktuell</option><option ${personFilters.familyStatus === 'Ehemalig' ? 'selected' : ''}>Ehemalig</option></select><select data-person-filter="job"><option value="">Alle Jobs</option>${jobs.map(job => `<option value="${escape(job)}" ${personFilters.job === job ? 'selected' : ''}>${escape(job)}</option>`).join('')}</select><select data-person-filter="jobStatus"><option value="">Aktuell oder ehemalig</option><option ${personFilters.jobStatus === 'Aktuell' ? 'selected' : ''}>Aktuell</option><option ${personFilters.jobStatus === 'Ehemalig' ? 'selected' : ''}>Ehemalig</option></select><select data-person-filter="relationship"><option value="">Alle Beziehungen</option>${relationTypes.map(type => `<option ${personFilters.relationship === type ? 'selected' : ''}>${type}</option>`).join('')}</select><select data-person-filter="status"><option value="">Alle Aktenstatus</option>${['Aktiv', 'Ehemalig', 'Unbekannt'].map(status => `<option ${personFilters.status === status ? 'selected' : ''}>${status}</option>`).join('')}</select></div><div class="dossier-grid">${cards || '<div class="panel empty">Keine Treffer. Familien- und Jobfilter zeigen nur tatsächlich dokumentierte Zugehörigkeiten.</div>'}</div>`;
   }
@@ -83,7 +105,10 @@ window.createRetroExtensions = function (api) {
   }
   function personTab(person, tab) {
     const add = (kind, label) => `<button type="button" class="subtle-button" data-extension-action="person-subform" data-kind="${kind}">＋ ${label}</button>`;
-    if (tab === 'overview') return `<div class="detail-grid"><div><small>Aktuelle Familie</small><strong>${escape(currentFamilies(person).map(item => item.familyName).join(', ') || person.family || '—')}</strong></div><div><small>Aktueller Job</small><strong>${escape(currentJobs(person).map(job => job.job).join(', ') || person.occupation || '—')}</strong></div><div><small>Telefon</small><strong>${escape(person.phone || '—')}</strong></div><div><small>Discord-ID</small><strong>${escape(person.discordId || '—')}</strong></div><div><small>Haus-/Wohnungs-PLZ</small><strong>${escape(person.homePostalCode || '—')}</strong></div><div><small>Familienstatus</small><strong>${escape(maritalStatus(person))}</strong></div></div>`;
+    if (tab === 'overview') {
+      const zodiac = zodiacFromBirthDate(person.birthDate);
+      return `<div class="detail-grid"><div><small>Aktuelle Familie</small><strong>${escape(currentFamilies(person).map(item => item.familyName).join(', ') || person.family || '—')}</strong></div><div><small>Aktueller Job</small><strong>${escape(currentJobs(person).map(job => job.position || job.job).join(', ') || person.occupation || '—')}</strong></div><div><small>Geburtstag</small><strong>${escape(person.birthDate ? formatDate(person.birthDate) : '—')}</strong></div><div><small>Sternzeichen</small><strong>${zodiac ? `${zodiac.symbol} ${escape(zodiac.name)}` : '—'}</strong></div><div><small>Telefon</small><strong>${escape(person.phone || '—')}</strong></div><div><small>Discord-ID</small><strong>${escape(person.discordId || '—')}</strong></div><div><small>Haus-/Wohnungs-PLZ</small><strong>${escape(person.homePostalCode || '—')}</strong></div><div><small>Familienstatus</small><strong>${escape(maritalStatus(person))}</strong></div></div>`;
+    }
     if (tab === 'personal') {
       const fields = [['firstName','Vorname'],['lastName','Nachname'],['birthDate','Geburtsdatum','date'],['gender','Geschlecht'],['phone','Telefonnummer','tel'],['discordId','Discord-ID'],['homePostalCode','Haus-/Wohnungs-PLZ'],['occupation','Beruf']];
       return `<form id="person-data-form"><div class="form-grid">${fields.map(([key,label,type='text']) => key==='gender'?`<div class="field"><label>Geschlecht</label><input type="hidden" name="gender" value="${escape(person.gender||'')}"><div class="filter-row" role="group" aria-label="Geschlecht"><button type="button" class="${person.gender==='männlich'?'primary-button':'subtle-button'}" data-gender-option="männlich" aria-pressed="${person.gender==='männlich'}">Männlich</button><button type="button" class="${person.gender==='weiblich'?'primary-button':'subtle-button'}" data-gender-option="weiblich" aria-pressed="${person.gender==='weiblich'}">Weiblich</button></div></div>`:`<div class="field"><label>${label}</label><input name="${key}" type="${type}" value="${escape(person[key] || '')}"></div>`).join('')}<div class="field"><label>Alter (aus Geburtsdatum)</label><input value="${escape(ageFromBirthDate(person.birthDate))}" readonly></div><div class="field full"><button class="primary-button">Persönliche Daten speichern</button></div></div></form>`;
